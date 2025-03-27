@@ -1,0 +1,16 @@
+========================================
+Iniciando configuração em Sat Feb 22 22:32:19 UTC 2025
+========================================
+⏳ Aguardando inicialização do Oracle...
+✅ Banco de dados está pronto!
+⚙️ Executando script no PDB [WINT]: /scripts/02-create-tablespaces.sql
+   ✔ Script /scripts/02-create-tablespaces.sql executado com sucesso (PDB=WINT).
+⚙️ Executando script no PDB [WINT]: /scripts/03-create-users.sql
+   ✔ Script /scripts/03-create-users.sql executado com sucesso (PDB=WINT).
+⚙️ Executando script no PDB [WINT]: /scripts/04-grant-permissions.sql
+   ✔ Script /scripts/04-grant-permissions.sql executado com sucesso (PDB=WINT).
+📥 Importando dump via /scripts/05-import-dump.sh
+   ✔ Importação concluída.
+========================================
+✅ Configuração concluída! Fim do script em Sat Feb 22 22:32:30 UTC 2025
+========================================
