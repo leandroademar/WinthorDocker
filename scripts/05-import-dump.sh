@@ -10,10 +10,10 @@
 
 # Variáveis de configuração
 DUMP_DIR="/dump"                     # Caminho onde o arquivo de dump e log estão montados
-DUMP_FILE_NAME="USER_FULL_WINT_VEL.dmp"  # Nome do arquivo .dmp
-LOG_FILE_NAME="USER_FULL_WINT_IMPORT_VEL.log"  # Nome do arquivo de log do import
+DUMP_FILE_NAME="USER_FULL_WINT_COAGRO.dmp"  # Nome do arquivo .dmp
+LOG_FILE_NAME="USER_FULL_WINT_IMPORT_COAGRO.log"  # Nome do arquivo de log do import
 ORACLE_PDB="WINT"                    # Nome do PDB (Pluggable Database)
-SCHEMA_ORIGEM="VELETRICA"               # Nome do schema de origem no dump
+SCHEMA_ORIGEM="COAGRO"               # Nome do schema de origem no dump
 SCHEMA_DESTINO="WINTHOR"             # Nome do schema destino
 
 # Credenciais e host de conexão ao Oracle
@@ -51,7 +51,7 @@ if [ -f "$FULL_DUMP_FILE" ]; then
     # Comando impdp
    impdp system/S3nh4Admin01@localhost:1521/WINT \
         directory=DUMP_DIR \
-        dumpfile=USER_FULL_WINT.dmp \
+        dumpfile=$DUMP_FILE_NAME \
         schemas=$SCHEMA_ORIGEM \
         remap_schema=$SCHEMA_ORIGEM:$SCHEMA_DESTINO
 
