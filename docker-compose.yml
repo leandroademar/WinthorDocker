@@ -3,7 +3,8 @@ version: "3.8"
 services:
   oracle-db:
     container_name: ${ORACLE_CONTAINER_NAME:-oracle-enterprise}
-    image: ${ORACLE_IMAGE:-container-registry.oracle.com/database/enterprise:19.19.0.0}
+    image: ${ORACLE_IMAGE:-container-registry.oracle.com/database/enterprise:19.3.0.0}
+    platform: ${ORACLE_PLATFORM:-linux/amd64}
     restart: always
     env_file:
       - .env
@@ -23,11 +24,11 @@ services:
       ENABLE_FORCE_LOGGING: ${ENABLE_FORCE_LOGGING}
       ENABLE_TCPS: ${ENABLE_TCPS}
     volumes:
-      - ./dados/oradata:/opt/oracle/oradata
-      - ./scripts:/scripts:rw
-      - ./dump:/dump:rw
+      - ./dados/oradata:/opt/oracle/oradata:z
+      - ./scripts:/scripts:z
+      - ./dump:/dump:z
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f pmon >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "/opt/oracle/checkDBStatus.sh"]
       interval: 30s
       timeout: 10s
       retries: 40
@@ -37,6 +38,7 @@ services:
 
   wta:
     container_name: ${WTA_CONTAINER_NAME:-wta}
+    platform: ${ORACLE_PLATFORM:-linux/amd64}
     build:
       context: .
       dockerfile: wta/Dockerfile
@@ -61,7 +63,7 @@ services:
       - "${WTA_RMI_PORT:-1099}:${WTA_RMI_PORT:-1099}"
       - "${WTA_ARTEMIS_PORT:-61616}:${WTA_ARTEMIS_PORT:-61616}"
     volumes:
-      - ./dados/wta:/opt/pcsist/produtos
+      - ./dados/wta:/opt/pcsist/produtos:z
     depends_on:
       oracle-db:
         condition: service_healthy

@@ -34,8 +34,12 @@ expect_after {
 }
 
 # Telas iniciais: boas-vindas / requisitos (opcao 1 = continuar).
+# Prompt real: "Pressione: (1) continuar, (2) sair, (3) mostrar novamente"
 for {set i 0} {$i < 4} {incr i} {
     expect {
+        -re {(?i)Pressione:.*\(1\).*continuar} {
+            send_continue
+        }
         -re {(?i)(1[[:space:]]*\[Continue\]|1[[:space:]]*-[[:space:]]*Continuar|pressione 1|\[1\])} {
             send_continue
         }
@@ -70,6 +74,7 @@ while {!$finished} {
         -re {(?i)Porta RMI} { send "$rmi\r" }
         -re {(?i)Porta Mensageiro} { send "$broker\r" }
         -re {(?i)Usar TNS|Utilizar Proxy|Utilizar hostname} { send "0\r" }
+        -re {(?i)Pressione:.*\(1\).*continuar} { send_continue }
         -re {(?i)1[[:space:]]*\[Continue\]|1[[:space:]]*-[[:space:]]*Continuar} { send_continue }
         -re {(?i)conclu[ií]da com sucesso|Installation finished|Pronto} {
             set finished 1

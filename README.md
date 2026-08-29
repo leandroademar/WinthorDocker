@@ -20,6 +20,7 @@ Toda a configuracao fica no `.env`. Os scripts nao carregam senhas nem nomes de 
 
 - Docker e Docker Compose v2
 - Conta no [Oracle Container Registry](https://container-registry.oracle.com/) com aceite da imagem **database/enterprise**
+- Host **x86_64**: tag `19.3.0.0` (`ORACLE_PLATFORM=linux/amd64`). A tag `19.19.0.0` e so ARM
 - Login na registry:
 
 ```bash
@@ -49,6 +50,7 @@ Equivalente sem Make:
 
 ```bash
 mkdir -p dump dados/oradata dados/wta
+chown -R 54321:54321 dados/oradata dump
 docker compose up -d
 docker compose exec oracle-db /scripts/01-init-db.sh
 ```
@@ -103,6 +105,8 @@ docs/
 
 | Variavel | Default | Uso |
 |---|---|---|
+| `ORACLE_IMAGE` | `.../enterprise:19.3.0.0` | 19c amd64; `19.19.0.0` so em ARM |
+| `ORACLE_PLATFORM` | `linux/amd64` | `platform:` do Compose |
 | `ORACLE_SID` | `ORLCDV` | SID da instancia |
 | `ORACLE_PDB` | `WINT` | PDB / service name |
 | `ORACLE_PWD` | (ver `.env.example`) | senha SYS/SYSTEM |

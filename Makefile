@@ -31,6 +31,8 @@ help:
 up: wta-zip
 	mkdir -p dump dados/oradata dados/wta
 	@test -f .env || (echo "Crie o .env: cp .env.example .env" && exit 1)
+	chown -R 54321:54321 dados/oradata dump 2>/dev/null || chmod 777 dados/oradata dump
+	chmod 777 scripts
 	$(COMPOSE) up -d
 
 down:

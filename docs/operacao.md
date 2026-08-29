@@ -89,9 +89,29 @@ O objeto `DUMP_DIR` e criado em `04-grant-permissions.sql.tpl` apontando para `$
 
 `ORACLE_PWD` so vale na primeira criacao. Se o volume `dados/oradata` ja existia, a senha do banco e a antiga. Use a senha real ou recrie os datafiles (apaga a instancia).
 
+### Imagem linux/arm64 em host amd64
+
+A tag `19.19.0.0` e so ARM. Neste host (`uname -m` = `x86_64`) use:
+
+```bash
+# no .env
+ORACLE_IMAGE=container-registry.oracle.com/database/enterprise:19.3.0.0
+ORACLE_PLATFORM=linux/amd64
+```
+
+Depois recrie (aceite a tag no Container Registry se ainda nao aceitou):
+
+```bash
+docker compose down
+docker rmi container-registry.oracle.com/database/enterprise:19.19.0.0 || true
+make up
+```
+
+Se o banco ainda nao tinha dados validos, apague `dados/oradata` antes do `make up` para nao misturar datafiles de outra arquitetura.
+
 ### Container unhealthy por muito tempo
 
-Na primeira subida e normal. Se passar de ~40 minutos, veja `make logs`. `pgrep pmon` e o teste do healthcheck: se o processo de instancia nao subiu, o banco nao inicializou.
+Na primeira subida e normal. Se passar de ~40 minutos, veja `make logs`. O healthcheck usa `/opt/oracle/checkDBStatus.sh` (instancia aberta, nao so o listener).
 
 ### Mudou o `.env` e nada mudou
 
@@ -102,6 +122,34 @@ docker compose up -d --force-recreate
 ```
 
 Lembre: SID/PDB/senha da imagem nao mudam num datafile ja criado.
+
+### WTA: SID WINT, Oracle invalido
+
+O instalador so valida o JDBC. Se o listener sobe sem instancia, a mensagem e `ERROR: SID: WINT, Oracle invalido`.
+
+Causas neste lab:
+
+- `dados/oradata` criado como `root` — o usuario `oracle` (uid 54321) nao consegue gravar datafiles
+- SELinux Enforcing em bind mount sem `:z`
+- healthcheck antigo (`pgrep -f pmon`) dava falso positivo; o WTA subia com o banco ainda inexistente (`ORA-01034`)
+
+Correcao:
+
+```bash
+docker compose down
+chown -R 54321:54321 dados/oradata dump
+make up
+make logs          # aguarde DATABASE IS READY / healthy de verdade
+make init          # schema WINTHOR; o WTA tenta de novo sozinho
+```
+
+Confirme o listener com servicos (nao so a porta 1521):
+
+```bash
+docker compose exec oracle-db lsnrctl status
+```
+
+Tem de aparecer o service `WINT` (PDB). Sem isso o IzPack recusa o SID.
 
 ### WTA nao instala / fica reiniciando
 

@@ -21,9 +21,12 @@ Depois de alterar variaveis oficiais do Oracle (`ORACLE_SID`, `ORACLE_PDB`, `ORA
 
 | Variavel | Default | Onde vale |
 |---|---|---|
-| `ORACLE_IMAGE` | `container-registry.oracle.com/database/enterprise:19.19.0.0` | Compose |
+| `ORACLE_IMAGE` | `container-registry.oracle.com/database/enterprise:19.3.0.0` | Compose |
+| `ORACLE_PLATFORM` | `linux/amd64` | Compose (`platform:`). Use `linux/arm64` com a tag `19.19.0.0` |
 | `ORACLE_CONTAINER_NAME` | `oracle-enterprise` | Compose |
 | `ORACLE_PORT` | `1521` | Compose (host:container) |
+
+A tag `19.19.0.0` no repositorio `database/enterprise` e **somente linux/arm64**. Em host x86_64 use `19.3.0.0` (amd64). As duas precisam de aceite no [Oracle Container Registry](https://container-registry.oracle.com/).
 
 ## Instancia Oracle
 
