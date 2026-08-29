@@ -1,0 +1,5 @@
+*
+!docker-entrypoint.sh
+!install-wta.sh
+!install-wta.exp
+!auto-install.xml.tpl

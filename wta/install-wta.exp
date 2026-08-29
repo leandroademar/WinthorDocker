@@ -1,0 +1,86 @@
+#!/usr/bin/expect -f
+# Fallback console (procedimento TOTVS: opcao 1 para continuar).
+# Variaveis vem do ambiente (install-wta.sh).
+
+set timeout 600
+log_user 1
+
+set java     $env(JAVA_BIN)
+set jar      $env(SETUP_JAR)
+set workdir  $env(WTA_INSTALLER_DIR)
+set dbhost   $env(WTA_ORACLE_HOST)
+set dbport   $env(WTA_ORACLE_PORT)
+set sid      $env(ORACLE_PDB)
+set dbuser   $env(SCHEMA_DESTINO)
+set dbpass   $env(SCHEMA_PASSWORD)
+set loja     $env(WTA_LOJA)
+set empresa   $env(WTA_EMPRESA)
+set http     $env(WTA_HTTP_PORT)
+set ssh      $env(WTA_SSH_PORT)
+set rmi      $env(WTA_RMI_PORT)
+set broker   $env(WTA_ARTEMIS_PORT)
+set shost    $env(WTA_SERVER_HOST)
+
+cd $workdir
+spawn $java -Djava.awt.headless=true -jar $jar -console -language prt
+
+proc send_continue {} {
+    send "1\r"
+}
+
+expect_after {
+    timeout { puts "TIMEOUT no instalador console"; exit 1 }
+    eof     { }
+}
+
+# Telas iniciais: boas-vindas / requisitos (opcao 1 = continuar).
+for {set i 0} {$i < 4} {incr i} {
+    expect {
+        -re {(?i)(1[[:space:]]*\[Continue\]|1[[:space:]]*-[[:space:]]*Continuar|pressione 1|\[1\])} {
+            send_continue
+        }
+        -re {(?i)Endereço do banco|hostname|Nome/IP} {
+            send "$dbhost\r"
+        }
+    }
+}
+
+expect {
+    -re {(?i)Endereço do banco|hostname} { send "$dbhost\r" }
+    -re {(?i)Porta:} { send "$dbport\r" }
+    -re {(?i)SID|Nome do Serviço|Nome do Servico} { send "$sid\r" }
+}
+
+# Loop generico: preenche campos conhecidos; 1 continua o restante.
+set finished 0
+while {!$finished} {
+    expect {
+        -re {(?i)Endereço do banco|Endereco do banco} { send "$dbhost\r" }
+        -re {(?i)^.*Porta:.*$} {
+            send "$dbport\r"
+        }
+        -re {(?i)SID|Nome do Serviço|Nome do Servico|Alias} { send "$sid\r" }
+        -re {(?i)Usuário do Banco|Usuario do Banco} { send "$dbuser\r" }
+        -re {(?i)Senha do Banco} { send "$dbpass\r" }
+        -re {(?i)Loja:} { send "$loja\r" }
+        -re {(?i)Empresa:} { send "$empresa\r" }
+        -re {(?i)Host servidor WTA|IP servidor WTA} { send "$shost\r" }
+        -re {(?i)Porta HTTP} { send "$http\r" }
+        -re {(?i)Porta SSH} { send "$ssh\r" }
+        -re {(?i)Porta RMI} { send "$rmi\r" }
+        -re {(?i)Porta Mensageiro} { send "$broker\r" }
+        -re {(?i)Usar TNS|Utilizar Proxy|Utilizar hostname} { send "0\r" }
+        -re {(?i)1[[:space:]]*\[Continue\]|1[[:space:]]*-[[:space:]]*Continuar} { send_continue }
+        -re {(?i)conclu[ií]da com sucesso|Installation finished|Pronto} {
+            set finished 1
+        }
+        eof {
+            set finished 1
+        }
+    }
+}
+
+catch wait result
+set exitcode [lindex $result 3]
+if {$exitcode eq ""} { set exitcode 0 }
+exit $exitcode

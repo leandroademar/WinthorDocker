@@ -2,3 +2,5 @@ dump/
 **/dump
 **/*.log
 dados/
+.env
+assets/winthor-setup-1.9.0.zip

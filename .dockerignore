@@ -1,0 +1,8 @@
+.git
+dados
+dump
+script_vel
+**/*.log
+.env
+assets/*
+!assets/winthor-setup-1.9.0.zip

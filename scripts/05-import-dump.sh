@@ -1,69 +1,45 @@
 #!/bin/bash
+# Importa o dump no PDB, remapeando SCHEMA_ORIGEM -> SCHEMA_DESTINO.
 
-########################################
-# Script de Importação do Dump Oracle
-# Objetivo:
-#   - Verificar se o arquivo .dmp existe
-#   - Executar impdp no PDB especificado
-#   - Remapear o schema de origem para outro nome
-########################################
+set -euo pipefail
 
-# Variáveis de configuração
-DUMP_DIR="/dump"                     # Caminho onde o arquivo de dump e log estão montados
-DUMP_FILE_NAME="USER_FULL_WINT_COAGRO.dmp"  # Nome do arquivo .dmp
-LOG_FILE_NAME="USER_FULL_WINT_IMPORT_COAGRO.log"  # Nome do arquivo de log do import
-ORACLE_PDB="WINT"                    # Nome do PDB (Pluggable Database)
-SCHEMA_ORIGEM="COAGRO"               # Nome do schema de origem no dump
-SCHEMA_DESTINO="WINTHOR"             # Nome do schema destino
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
 
-# Credenciais e host de conexão ao Oracle
-ORACLE_USER="system"
-ORACLE_PASSWORD="S3nh4Admin01"
-ORACLE_HOST="localhost"
-ORACLE_PORT="1521"
+require_vars ORACLE_USER ORACLE_PASSWORD ORACLE_HOST ORACLE_PORT ORACLE_PDB \
+  SCHEMA_ORIGEM SCHEMA_DESTINO DUMP_DIR DUMP_FILE_NAME LOG_FILE_NAME
 
-########################################
-# Exibe as configurações antes de iniciar
-########################################
-echo "===== Configurações de Importação ====="
-echo "DUMP_DIR:       $DUMP_DIR"
-echo "DUMP_FILE_NAME: $DUMP_FILE_NAME"
-echo "LOG_FILE_NAME:  $LOG_FILE_NAME"
-echo "ORACLE_PDB:     $ORACLE_PDB"
-echo "SCHEMA_ORIGEM:  $SCHEMA_ORIGEM"
-echo "SCHEMA_DESTINO: $SCHEMA_DESTINO"
-echo "ORACLE_USER:    $ORACLE_USER"
-echo "ORACLE_HOST:    $ORACLE_HOST"
-echo "ORACLE_PORT:    $ORACLE_PORT"
-echo "========================================"
-echo
+FULL_DUMP_FILE="${DUMP_DIR}/${DUMP_FILE_NAME}"
 
-# Caminhos completos para dump e log
-FULL_DUMP_FILE="$DUMP_DIR/$DUMP_FILE_NAME"
+print_config
 
-echo "📂 Iniciando importação do dump..."
-
-# Verifica se o arquivo .dmp existe
-if [ -f "$FULL_DUMP_FILE" ]; then
-    echo "✅ Arquivo de dump encontrado: $FULL_DUMP_FILE"
-    echo "   Iniciando impdp..."
-
-    # Comando impdp
-   impdp system/S3nh4Admin01@localhost:1521/WINT \
-        directory=DUMP_DIR \
-        dumpfile=$DUMP_FILE_NAME \
-        schemas=$SCHEMA_ORIGEM \
-        remap_schema=$SCHEMA_ORIGEM:$SCHEMA_DESTINO
-
-    # Verifica o status do impdp
-    if [ $? -eq 0 ]; then
-        echo "🎉 Importação concluída com sucesso!"
-        echo "   Log de importação"
-    else
-        echo "❌ ERRO na importação. Verifique o log"
-    fi
-else
-    echo "⚠️  Arquivo dump não encontrado em $FULL_DUMP_FILE"
-    echo "    Verifique se o volume está montado corretamente ou se o arquivo existe."
-    echo "    Pulando a importação..."
+if [ ! -f "$FULL_DUMP_FILE" ]; then
+  warn "Arquivo dump nao encontrado em ${FULL_DUMP_FILE}"
+  warn "Monte o volume ./dump ou ajuste DUMP_FILE_NAME no .env. Pulando importacao."
+  exit 0
 fi
+
+log "Arquivo de dump encontrado: ${FULL_DUMP_FILE}"
+log "Iniciando impdp..."
+
+PARFILE="$(mktemp /tmp/impdp-XXXXXX.par)"
+cat > "$PARFILE" <<EOF
+userid=${ORACLE_USER}/${ORACLE_PASSWORD}@${ORACLE_HOST}:${ORACLE_PORT}/${ORACLE_PDB}
+directory=DUMP_DIR
+dumpfile=${DUMP_FILE_NAME}
+logfile=${LOG_FILE_NAME}
+schemas=${SCHEMA_ORIGEM}
+remap_schema=${SCHEMA_ORIGEM}:${SCHEMA_DESTINO}
+EOF
+
+status=0
+impdp parfile="$PARFILE" || status=$?
+rm -f "$PARFILE"
+
+if [ "$status" -eq 0 ]; then
+  ok "Importacao concluida. Log: ${DUMP_DIR}/${LOG_FILE_NAME}"
+else
+  fail "impdp retornou status=${status}. Verifique ${DUMP_DIR}/${LOG_FILE_NAME}"
+fi
+

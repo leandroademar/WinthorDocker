@@ -1,87 +1,85 @@
 #!/bin/bash
+# Aguarda o Oracle ficar pronto e aplica tablespaces, usuario, grants e import.
+# Executar dentro do container: /scripts/01-init-db.sh
 
-########################################
-# Script: init-db.sh
-# Objetivo: Aguardar Oracle subir e rodar scripts no PDB
-########################################
+set -euo pipefail
 
-# Arquivo de log consolidado
-MAIN_LOG="/scripts/init-db.log"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
 
-# Nome do PDB que você deseja usar
-PDB_NAME="WINT"
+require_vars ORACLE_PDB ORACLE_SID SCHEMA_DESTINO SCHEMA_PASSWORD TS_DADOS TS_INDICE
 
-# Função para aguardar a inicialização do Oracle
 aguardar_oracle() {
-  echo "⏳ Aguardando inicialização do Oracle..." | tee -a "$MAIN_LOG"
+  log "Aguardando inicializacao do Oracle..." | tee -a "$MAIN_LOG"
   until sqlplus -s / as sysdba <<END
 whenever sqlerror exit sql.sqlcode;
 select 1 from dual;
 exit;
 END
   do
-    echo "⏳ Banco de dados ainda não está pronto. Tentando novamente em 10 minutos..." | tee -a "$MAIN_LOG"
-    sleep 600
+    log "Banco ainda nao esta pronto. Nova tentativa em ${ORACLE_WAIT_SECONDS}s..." | tee -a "$MAIN_LOG"
+    sleep "$ORACLE_WAIT_SECONDS"
   done
-  echo "✅ Banco de dados está pronto!" | tee -a "$MAIN_LOG"
+  ok "Banco de dados esta pronto." | tee -a "$MAIN_LOG"
 }
 
-# Função para rodar um script SQL dentro do PDB e logar saída
-rodar_sql_script() {
-  local sql_script="$1"
+rodar_sql_template() {
+  local template="$1"
   local log_file="$2"
+  local rendered
 
-  echo "⚙️ Executando script no PDB [$PDB_NAME]: $sql_script" | tee -a "$MAIN_LOG"
+  rendered="$(mktemp /tmp/wint-XXXXXX.sql)"
+  render_sql_template "$template" "$rendered"
 
-  # Conecta como SYSDBA, muda para o PDB e roda o script
-  sqlplus -s / as sysdba <<EOF > "$log_file" 2>&1
+  log "Executando no PDB [${ORACLE_PDB}]: $(basename "$template")" | tee -a "$MAIN_LOG"
+
+  local status=0
+  sqlplus -s / as sysdba <<EOF > "$log_file" 2>&1 || status=$?
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-ALTER SESSION SET CONTAINER=$PDB_NAME;
-@${sql_script}
+ALTER SESSION SET CONTAINER=${ORACLE_PDB};
+@${rendered}
 EXIT
 EOF
 
-  local status=$?
-  if [ $status -eq 0 ]; then
-    echo "   ✔ Script $sql_script executado com sucesso (PDB=$PDB_NAME)." | tee -a "$MAIN_LOG"
+  rm -f "$rendered"
+
+  if [ "$status" -eq 0 ]; then
+    ok "Script $(basename "$template") executado (PDB=${ORACLE_PDB})." | tee -a "$MAIN_LOG"
   else
-    echo "   ❌ ERRO ao executar $sql_script (status=$status). Veja $log_file para detalhes." | tee -a "$MAIN_LOG"
+    fail "Falha ao executar $(basename "$template") (status=${status}). Detalhes: ${log_file}"
   fi
 }
 
-# Função para rodar o script de importação (shell script) e logar saída
 rodar_import_dump() {
   local import_script="$1"
   local log_file="$2"
 
-  echo "📥 Importando dump via $import_script" | tee -a "$MAIN_LOG"
-  bash "$import_script" > "$log_file" 2>&1
-  local status=$?
+  log "Importando dump via $(basename "$import_script")" | tee -a "$MAIN_LOG"
 
-  if [ $status -eq 0 ]; then
-    echo "   ✔ Importação concluída." | tee -a "$MAIN_LOG"
+  local status=0
+  bash "$import_script" > "$log_file" 2>&1 || status=$?
+
+  if [ "$status" -eq 0 ]; then
+    ok "Importacao concluida (ou dump ausente — ver log)." | tee -a "$MAIN_LOG"
   else
-    echo "   ❌ ERRO na importação (status=$status). Veja $log_file para detalhes." | tee -a "$MAIN_LOG"
+    fail "Falha na importacao (status=${status}). Detalhes: ${log_file}"
   fi
 }
 
-### Início do Script ###
-
 echo "========================================" | tee -a "$MAIN_LOG"
-echo "Iniciando configuração em $(date)" | tee -a "$MAIN_LOG"
+log "Iniciando configuracao" | tee -a "$MAIN_LOG"
+print_config | tee -a "$MAIN_LOG"
 echo "========================================" | tee -a "$MAIN_LOG"
 
-# 1) Aguardar Oracle subir
 aguardar_oracle
 
-# 2) Executar scripts SQL de criação de tablespaces, usuários e permissões
-rodar_sql_script "/scripts/02-create-tablespaces.sql" "/scripts/02-create-tablespaces.log"
-rodar_sql_script "/scripts/03-create-users.sql"       "/scripts/03-create-users.log"
-rodar_sql_script "/scripts/04-grant-permissions.sql"  "/scripts/04-grant-permissions.log"
-
-# 3) Executar script de importação
-rodar_import_dump "/scripts/05-import-dump.sh" "/scripts/05-import-dump.log"
+rodar_sql_template "${SCRIPT_DIR}/02-create-tablespaces.sql.tpl" "${SCRIPT_DIR}/02-create-tablespaces.log"
+rodar_sql_template "${SCRIPT_DIR}/03-create-users.sql.tpl"       "${SCRIPT_DIR}/03-create-users.log"
+rodar_sql_template "${SCRIPT_DIR}/04-grant-permissions.sql.tpl"  "${SCRIPT_DIR}/04-grant-permissions.log"
+rodar_import_dump  "${SCRIPT_DIR}/05-import-dump.sh"             "${SCRIPT_DIR}/05-import-dump.log"
 
 echo "========================================" | tee -a "$MAIN_LOG"
-echo "✅ Configuração concluída! Fim do script em $(date)" | tee -a "$MAIN_LOG"
+ok "Configuracao concluida." | tee -a "$MAIN_LOG"
 echo "========================================" | tee -a "$MAIN_LOG"
+

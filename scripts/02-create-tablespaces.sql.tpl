@@ -1,0 +1,41 @@
+-- Tablespaces do schema Winthor. Idempotente: so cria se nao existir.
+-- Caminho: /opt/oracle/oradata/${ORACLE_SID}/${ORACLE_PDB}/
+
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+    FROM dba_tablespaces
+   WHERE tablespace_name = '${TS_DADOS}';
+
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE
+      'CREATE BIGFILE TABLESPACE ${TS_DADOS} DATAFILE ''/opt/oracle/oradata/${ORACLE_SID}/${ORACLE_PDB}/${TS_DADOS}.dbf''
+         SIZE ${TS_INITIAL_SIZE} AUTOEXTEND ON NEXT ${TS_NEXT_SIZE} MAXSIZE UNLIMITED
+         SEGMENT SPACE MANAGEMENT AUTO';
+  END IF;
+END;
+/
+
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+    FROM dba_tablespaces
+   WHERE tablespace_name = '${TS_INDICE}';
+
+  IF v_count = 0 THEN
+    EXECUTE IMMEDIATE
+      'CREATE BIGFILE TABLESPACE ${TS_INDICE} DATAFILE ''/opt/oracle/oradata/${ORACLE_SID}/${ORACLE_PDB}/${TS_INDICE}.dbf''
+         SIZE ${TS_INITIAL_SIZE} AUTOEXTEND ON NEXT ${TS_NEXT_SIZE} MAXSIZE UNLIMITED
+         SEGMENT SPACE MANAGEMENT AUTO';
+  END IF;
+END;
+/
+
+ALTER SYSTEM SET CURSOR_SHARING=EXACT SCOPE=BOTH;
+ALTER SYSTEM SET JOB_QUEUE_PROCESSES=10 SCOPE=BOTH;
+
+EXIT;

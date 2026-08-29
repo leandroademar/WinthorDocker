@@ -1,26 +1,80 @@
-version: '3.8'
+version: "3.8"
 
 services:
   oracle-db:
-    container_name: oracle-enterprise
-    image: container-registry.oracle.com/database/enterprise:19.19.0.0
+    container_name: ${ORACLE_CONTAINER_NAME:-oracle-enterprise}
+    image: ${ORACLE_IMAGE:-container-registry.oracle.com/database/enterprise:19.19.0.0}
     restart: always
+    env_file:
+      - .env
     ports:
-      - "1521:1521"
+      - "${ORACLE_PORT:-1521}:1521"
     environment:
-      ORACLE_SID: ORLCDV
-      ORACLE_PDB: WINT
-      ORACLE_PWD: "S3nh4Admin01"
-      INIT_SGA_SIZE: 8192
-      INIT_PGA_SIZE: 2048
-      INIT_CPU_COUNT: 4
-      INIT_PROCESSES: 900
-      ORACLE_EDITION: "enterprise"
-      ORACLE_CHARACTERSET: "WE8MSWIN1252"
-      ENABLE_ARCHIVELOG: "true"
-      ENABLE_FORCE_LOGGING: "true"
-      ENABLE_TCPS: "true"
+      ORACLE_SID: ${ORACLE_SID}
+      ORACLE_PDB: ${ORACLE_PDB}
+      ORACLE_PWD: ${ORACLE_PWD}
+      INIT_SGA_SIZE: ${INIT_SGA_SIZE}
+      INIT_PGA_SIZE: ${INIT_PGA_SIZE}
+      INIT_CPU_COUNT: ${INIT_CPU_COUNT}
+      INIT_PROCESSES: ${INIT_PROCESSES}
+      ORACLE_EDITION: ${ORACLE_EDITION}
+      ORACLE_CHARACTERSET: ${ORACLE_CHARACTERSET}
+      ENABLE_ARCHIVELOG: ${ENABLE_ARCHIVELOG}
+      ENABLE_FORCE_LOGGING: ${ENABLE_FORCE_LOGGING}
+      ENABLE_TCPS: ${ENABLE_TCPS}
     volumes:
       - ./dados/oradata:/opt/oracle/oradata
       - ./scripts:/scripts:rw
       - ./dump:/dump:rw
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f pmon >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 40
+      start_period: 15m
+    networks:
+      - winthor
+
+  wta:
+    container_name: ${WTA_CONTAINER_NAME:-wta}
+    build:
+      context: .
+      dockerfile: wta/Dockerfile
+      args:
+        WTA_SETUP_ZIP: ${WTA_SETUP_ZIP:-assets/winthor-setup-1.9.0.zip}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      WTA_ORACLE_HOST: ${WTA_ORACLE_HOST:-oracle-db}
+      WTA_ORACLE_PORT: ${WTA_ORACLE_PORT:-1521}
+      WTA_HTTP_PORT: ${WTA_HTTP_PORT:-8180}
+      WTA_SSH_PORT: ${WTA_SSH_PORT:-8101}
+      WTA_RMI_PORT: ${WTA_RMI_PORT:-1099}
+      WTA_ARTEMIS_PORT: ${WTA_ARTEMIS_PORT:-61616}
+      WTA_LOJA: ${WTA_LOJA:-1}
+      WTA_EMPRESA: ${WTA_EMPRESA:-1}
+      WTA_SERVER_HOST: ${WTA_SERVER_HOST:-}
+    ports:
+      - "${WTA_HTTP_PORT:-8180}:${WTA_HTTP_PORT:-8180}"
+      - "${WTA_SSH_PORT:-8101}:${WTA_SSH_PORT:-8101}"
+      - "${WTA_RMI_PORT:-1099}:${WTA_RMI_PORT:-1099}"
+      - "${WTA_ARTEMIS_PORT:-61616}:${WTA_ARTEMIS_PORT:-61616}"
+    volumes:
+      - ./dados/wta:/opt/pcsist/produtos
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${WTA_HTTP_PORT:-8180}/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 15m
+    networks:
+      - winthor
+
+networks:
+  winthor:
+    name: winthor
+
