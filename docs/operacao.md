@@ -17,7 +17,7 @@ A primeira subida da imagem Oracle 19c Enterprise costuma levar 15–30 minutos.
 
 | Situacao | Comando |
 |---|---|
-| Banco novo, ainda sem schema Winthor | `make init` |
+| Banco novo, ainda sem schema Winthor | `make init` (descompacta o backup se preciso) |
 | Schema e grants ja existem; so falta o dump | `make import` |
 | Reexecutar init depois de um erro | `make init` de novo (tablespace e usuario sao idempotentes) |
 
@@ -47,7 +47,7 @@ Na tela de boas-vindas, pressione `1` e Enter (continuar).
 | `assets/winthor-setup-1.9.0.zip` | (build) | instalador Linux do WTA |
 | `scripts/*.log` | `/scripts/*.log` | saida do init e dos SQL (gitignore) |
 
-Coloque o dump em `dump/` com o nome de `DUMP_FILE_NAME` **antes** de `make init` ou `make import`.
+Coloque o tarball em `DUMP_BACKUP` (default `dados/backup_datapump_WINT_20260824-180001.tar.gz`). `make init` e `make import` chamam `make dump-extract`, que descompacta em `dump/` se ainda nao houver `.dmp`. O `impdp` usa `DUMP_FILE_NAME` (`%U` para arquivos paralelos `_01.dmp`, `_02.dmp`, ...).
 
 ## Conexao
 

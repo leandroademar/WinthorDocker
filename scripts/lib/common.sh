@@ -30,8 +30,8 @@ fail() { log "ERRO: $*" >&2; exit 1; }
 : "${TS_INITIAL_SIZE:=3G}"
 : "${TS_NEXT_SIZE:=100M}"
 : "${DUMP_DIR:=/dump}"
-: "${DUMP_FILE_NAME:=USER_FULL_WINT_COAGRO.dmp}"
-: "${LOG_FILE_NAME:=USER_FULL_WINT_IMPORT_COAGRO.log}"
+: "${DUMP_FILE_NAME:=backup_datapump_WINT_20260824-180001_%U.dmp}"
+: "${LOG_FILE_NAME:=backup_datapump_WINT_20260824-180001_import.log}"
 : "${MAIN_LOG:=${SCRIPTS_DIR}/init-db.log}"
 
 require_vars() {

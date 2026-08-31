@@ -11,13 +11,14 @@ require_vars ORACLE_USER ORACLE_PASSWORD ORACLE_HOST ORACLE_PORT ORACLE_PDB \
   SCHEMA_ORIGEM SCHEMA_DESTINO DUMP_DIR DUMP_FILE_NAME LOG_FILE_NAME
 
 FULL_DUMP_FILE="${DUMP_DIR}/${DUMP_FILE_NAME}"
+if [[ "${DUMP_FILE_NAME}" == *%U* ]]; then
+  FULL_DUMP_FILE="${DUMP_DIR}/${DUMP_FILE_NAME//%U/01}"
+fi
 
 print_config
 
 if [ ! -f "$FULL_DUMP_FILE" ]; then
-  warn "Arquivo dump nao encontrado em ${FULL_DUMP_FILE}"
-  warn "Monte o volume ./dump ou ajuste DUMP_FILE_NAME no .env. Pulando importacao."
-  exit 0
+  fail "Arquivo dump nao encontrado em ${FULL_DUMP_FILE}. Rode make dump-extract ou ajuste DUMP_FILE_NAME no .env."
 fi
 
 log "Arquivo de dump encontrado: ${FULL_DUMP_FILE}"

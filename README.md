@@ -1,10 +1,5 @@
-<p align="center">
-  <a href="https://nwerp.ai">
-    <img src="docs/assets/nwerp.png" alt="nwerp.ai" height="56">
-  </a>
-  <br>
-  <a href="https://nwerp.ai">https://nwerp.ai</a>
-</p>
+![nwerp.ai](docs/assets/nwerp.png)  
+[https://nwerp.ai](https://nwerp.ai)
 
 # WinthorDocker
 
@@ -27,7 +22,7 @@ Toda a configuracao fica no `.env`. Os scripts nao carregam senhas nem nomes de 
 docker login container-registry.oracle.com
 ```
 
-- Arquivo de dump Data Pump em `dump/` (mesmo nome definido em `DUMP_FILE_NAME`)
+- Tarball Data Pump em `DUMP_BACKUP` (descompactado em `dump/` por `make dump-extract` / `make init`)
 - Saida a internet no container WTA (repositorios TOTVS na primeira instalacao)
 
 A primeira inicializacao do Oracle 19c pode levar 15–30 minutos.
@@ -54,6 +49,8 @@ chown -R 54321:54321 dados/oradata dump
 docker compose up -d
 docker compose exec oracle-db /scripts/01-init-db.sh
 ```
+
+
 
 ## Conectar
 
@@ -101,21 +98,26 @@ docs/
   operacao.md         dia a dia e troubleshooting
 ```
 
+
+
 ## Variaveis mais usadas
 
-| Variavel | Default | Uso |
-|---|---|---|
-| `ORACLE_IMAGE` | `.../enterprise:19.3.0.0` | 19c amd64; `19.19.0.0` so em ARM |
-| `ORACLE_PLATFORM` | `linux/amd64` | `platform:` do Compose |
-| `ORACLE_SID` | `ORLCDV` | SID da instancia |
-| `ORACLE_PDB` | `WINT` | PDB / service name |
-| `ORACLE_PWD` | (ver `.env.example`) | senha SYS/SYSTEM |
-| `SCHEMA_DESTINO` | `WINTHOR` | schema criado no PDB |
-| `SCHEMA_PASSWORD` | (ver `.env.example`) | senha do schema |
-| `SCHEMA_ORIGEM` | `COAGRO` | schema dentro do dump |
-| `DUMP_FILE_NAME` | `USER_FULL_WINT_COAGRO.dmp` | arquivo em `dump/` |
-| `WTA_HTTP_PORT` | `8180` | HTTP do WTA no host |
-| `WTA_LOJA` / `WTA_EMPRESA` | `1` / `1` | equivalentes ao login do Winthor |
+
+| Variavel                   | Default                     | Uso                              |
+| -------------------------- | --------------------------- | -------------------------------- |
+| `ORACLE_IMAGE`             | `.../enterprise:19.3.0.0`   | 19c amd64; `19.19.0.0` so em ARM |
+| `ORACLE_PLATFORM`          | `linux/amd64`               | `platform:` do Compose           |
+| `ORACLE_SID`               | `ORLCDV`                    | SID da instancia                 |
+| `ORACLE_PDB`               | `WINT`                      | PDB / service name               |
+| `ORACLE_PWD`               | (ver `.env.example`)        | senha SYS/SYSTEM                 |
+| `SCHEMA_DESTINO`           | `WINTHOR`                   | schema criado no PDB             |
+| `SCHEMA_PASSWORD`          | (ver `.env.example`)        | senha do schema                  |
+| `SCHEMA_ORIGEM`            | `COAGRO`                    | schema dentro do dump            |
+| `DUMP_BACKUP`              | `dados/backup_datapump_WINT_*.tar.gz` | tarball extraido por `make dump-extract` |
+| `DUMP_FILE_NAME`           | `backup_datapump_WINT_..._%U.dmp` | arquivo(s) em `dump/` (`%U` = 01, 02) |
+| `WTA_HTTP_PORT`            | `8180`                      | HTTP do WTA no host              |
+| `WTA_LOJA` / `WTA_EMPRESA` | `1` / `1`                   | equivalentes ao login do Winthor |
+
 
 Lista completa em [docs/configuracao.md](docs/configuracao.md). Operacao e problemas comuns em [docs/operacao.md](docs/operacao.md).
 
@@ -136,6 +138,8 @@ flowchart TD
   install --> http["http://localhost:8180"]
 ```
 
+
+
 O import **nao** roda sozinho no start do container: o dump pode nao existir e o `impdp` e demorado. Use `make init` (tudo) ou `make import` (so o dump).
 
 O WTA **espera** o Oracle healthy e o schema (`make init`). Se o schema ainda nao existir, o instalador tenta de novo. A configuracao inicial no browser (wizard TOTVS) continua manual.
@@ -148,6 +152,8 @@ O WTA **espera** o Oracle healthy e o schema (`make init`). Se o schema ainda na
 - O instalador Linux fica em `assets/winthor-setup-1.9.0.zip` (nao versionado). `make up` baixa de novo se o arquivo faltar.
 - O container WTA precisa de saida a internet na instalacao (`repo.pcinformatica.com.br`, `hub.pcinformatica.com.br`, `servicos.pcinformatica.com.br`).
 - O Oracle deste lab ja usa SGA+PGA altos; o WTA pede ~8 GB livres no host.
+
+
 
 ## Marcas
 

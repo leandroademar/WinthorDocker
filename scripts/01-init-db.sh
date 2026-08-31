@@ -61,7 +61,7 @@ rodar_import_dump() {
   bash "$import_script" > "$log_file" 2>&1 || status=$?
 
   if [ "$status" -eq 0 ]; then
-    ok "Importacao concluida (ou dump ausente — ver log)." | tee -a "$MAIN_LOG"
+    ok "Importacao concluida." | tee -a "$MAIN_LOG"
   else
     fail "Falha na importacao (status=${status}). Detalhes: ${log_file}"
   fi

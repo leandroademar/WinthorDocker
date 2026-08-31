@@ -76,8 +76,9 @@ Datafiles em `/opt/oracle/oradata/${ORACLE_SID}/${ORACLE_PDB}/`.
 | Variavel | Default | Onde vale |
 |---|---|---|
 | `DUMP_DIR` | `/dump` | volume e `CREATE DIRECTORY` |
-| `DUMP_FILE_NAME` | `USER_FULL_WINT_COAGRO.dmp` | arquivo em `./dump` |
-| `LOG_FILE_NAME` | `USER_FULL_WINT_IMPORT_COAGRO.log` | log do `impdp` no mesmo volume |
+| `DUMP_BACKUP` | `dados/backup_datapump_WINT_20260824-180001.tar.gz` | host; `make dump-extract` |
+| `DUMP_FILE_NAME` | `backup_datapump_WINT_20260824-180001_%U.dmp` | arquivo(s) em `./dump` (`%U` = 01, 02, ...) |
+| `LOG_FILE_NAME` | `backup_datapump_WINT_20260824-180001_import.log` | log do `impdp` no mesmo volume |
 
 ## Operacao dos scripts
 
